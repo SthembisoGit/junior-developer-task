@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Sorter</title>
+   <style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-top: 30px;
+}
+
+h1, h2 {
+    color: #2c3e50;
+}
+
+.input-section {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+}
+
+input[type="text"], input[type="email"] {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex-grow: 1;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+.result-section, .api-test-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+#resultContainer, #supabaseResult {
+    margin-top: 10px;
+    padding: 15px;
+    background-color: white;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+pre {
+    background-color: #f8f8f8;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.error {
+    color: #e74c3c;
+}
+
+@media (max-width: 600px) {
+    .input-section {
+        flex-direction: column;
+    }
+}
+
+
+   </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Word Sorting Tool</h1>
+        <p>Enter a word to see its letters sorted alphabetically</p>
+        
+        <div class="input-section">
+            <input type="text" id="wordInput" placeholder="Enter a word">
+            <button id="sortButton">Sort Letters</button>
+        </div>
+        
+        <div class="result-section">
+            <h2>Sorted Result:</h2>
+            <div id="resultContainer"></div>
+        </div>
+
+        <div class="api-test-section">
+            <h2>Test with Supabase</h2>
+            <input type="email" id="emailInput" placeholder="Your email">
+            <button id="testButton">Test with Supabase</button>
+            <div id="supabaseResult"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('sortButton').addEventListener('click', async () => {
+            const word = document.getElementById('wordInput').value.trim();
+            
+            if (!word) {
+                alert('Please enter a word');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/sort-word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ data: word })
+                });
+
+                const result = await response.json();
+                document.getElementById('resultContainer').innerHTML = 
+                    `<p>Original word: <strong>${word}</strong></p>
+                     <p>Sorted letters: <strong>${result.word.join('')}</strong></p>
+                     <p>As array: [${result.word.map(letter => `"${letter}"`).join(', ')}]</p>`;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('resultContainer').innerHTML = 
+                    '<p class="error">Error processing your request</p>';
+            }
+        });
+
+        document.getElementById('testButton').addEventListener('click', async () => {
+            const email = document.getElementById('emailInput').value.trim();
+            const word = document.getElementById('wordInput').value.trim();
+            
+            if (!email || !word) {
+                alert('Please enter both email and a word');
+                return;
+            }
+
+            try {
+                // First get the sorted result from our API
+                const sortResponse = await fetch('/api/sort-word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ data: word })
+                });
+
+                if (!sortResponse.ok) {
+                    throw new Error('Failed to sort word');
+                }
+
+                // Then test with Supabase
+                const supabaseUrl = `https://yhxziyykdsfkdrmdxqho.supabase.co/functions/v1/junior-dev?url=${encodeURIComponent(window.location.origin + '/api/sort-word')}&email=${encodeURIComponent(email)}`;
+                
+                const supabaseResponse = await fetch(supabaseUrl);
+                const supabaseResult = await supabaseResponse.json();
+
+                document.getElementById('supabaseResult').innerHTML = 
+                    `<p>Supabase response:</p>
+                     <pre>${JSON.stringify(supabaseResult, null, 2)}</pre>`;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('supabaseResult').innerHTML = 
+                    '<p class="error">Error testing with Supabase</p>';
+            }
+        });
+    </script>
+</body>
+</html>
